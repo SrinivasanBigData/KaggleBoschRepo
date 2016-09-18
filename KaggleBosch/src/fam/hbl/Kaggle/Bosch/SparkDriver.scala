@@ -27,38 +27,47 @@ object SparkDriver {
 			// return the session created
 			return session
 	}
-  
+
 	/**
 	 *  This function splits the data set in test and train data
 	 */
-	def split_train_test_data_fine (data:DataFrame, test_percentage:Double):(DataFrame,DataFrame) = {
-	  // get the test data
-	  val test= data.sample(false, test_percentage)
-	  // get the training data as data that is not in test
-	  val train= data.except(test)
-	  // return both data frames
-	  return (train, test)
+	def split_train_validation_data_fine (data:DataFrame, validation_percentage:Double):(DataFrame,DataFrame) = {
+			// get the test data
+			val validationDF= data.sample(false, validation_percentage)
+					// get the training data as data that is not in test
+					val trainDF= data.except(validationDF)
+					// return both data frames
+					return (trainDF, validationDF)
 	}
-  
+
 	/**
-	 *  This function splits the data set in test and train data
+	 *  This function splits the data set in validation and train data
+	 *  
+	 *  NOTE:  this function is rough in the sense that there is no guarantee that 
+	 *  there is no guarantee that the train data is different than the validation data
+	 *  As a consequence the validation evaluation will be a bit more optimistic than it should be
+	 *  One should use a relatively low percentage so the risk of overlaps will be relatively small.
 	 */
-	def split_train_test_data_rough (data:DataFrame, test_percentage:Double):(DataFrame,DataFrame) = {
-	  // get the test data
-	  val test= data.sample(false, test_percentage)
-	  // get the training data as data that is not in test
-	  val train= data.sample(false, 1-test_percentage)
-	  // return both data frames
-	  return (train, test)
+	def split_train_validation_data_rough (data:DataFrame, validation_percentage:Double):(DataFrame,DataFrame) = {
+			// get the test data
+			val validationDF= data.sample(false, validation_percentage)
+					// get the training data as data that is not in test
+					val trainDF= data.sample(false, 1-validation_percentage)
+					// return both data frames
+					return (trainDF, validationDF)
 	}
-	
+
 	def split_train_test_data (data:DataFrame, test_percentage:Double, rought_strategy:Boolean=true):(DataFrame,DataFrame) = {
-	  if (rought_strategy) {
-	    split_train_test_data_rough (data, test_percentage)
-	  } else {
-	    split_train_test_data_fine (data, test_percentage)
-	  }
+		// compute the traain and validation set depending on the strategy	
+	  val (trainDF, validationDF)=
+					if (rought_strategy) {
+						split_train_validation_data_rough (data, test_percentage)
+					} else {
+						split_train_validation_data_fine (data, test_percentage)
+					}
+	  // return the two data frames
+	  return (trainDF, validationDF)
 	}
-  
+
 }
 
