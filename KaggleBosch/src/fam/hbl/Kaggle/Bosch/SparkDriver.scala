@@ -52,7 +52,7 @@ object SparkDriver {
 	  return (train, test)
 	}
 	
-	def split_train_test_data (data:DataFrame, test_percentage:Double, val rought_strategy=true):(DataFrame,DataFrame) = {
+	def split_train_test_data (data:DataFrame, test_percentage:Double, rought_strategy:Boolean=true):(DataFrame,DataFrame) = {
 	  if (rought_strategy) {
 	    split_train_test_data_rough (data, test_percentage)
 	  } else {
@@ -61,3 +61,4 @@ object SparkDriver {
 	}
   
 }
+
