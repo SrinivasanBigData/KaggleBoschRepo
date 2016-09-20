@@ -46,13 +46,24 @@ object BoschExploration {
 //  }
 //  
   
-  def score_features_relevance (dataDF:DataFrame,numTopFeatures:Int=100) :RDD[LabeledPoint] = {
+  /**
+   * 
+ * @param dataDF
+ * @param numTopFeatures
+ * @return
+ */
+def score_features_relevance (dataDF:DataFrame,numTopFeatures:Int=100) :RDD[LabeledPoint] = {
     // transform the data frame in an RDD[labeledPoints] to be able to use it for ML
    val lab_pts= SparkDriver.df2LabeledPoints(dataDF, "Response")
    // extract the mnost relevant features
    return SparkDriver.feature_selection (lab_pts, numTopFeatures) 
   }
 	
+  
+	/**  
+	 * Exploration driver
+	 * @param dataDF:  the data to explore
+	 */
 	def explore (dataDF:DataFrame) {
 	  // check on the 1 cases
 	  check_response_1_cases (dataDF)
