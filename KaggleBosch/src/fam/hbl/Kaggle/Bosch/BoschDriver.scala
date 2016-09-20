@@ -8,6 +8,7 @@ package fam.hbl.Kaggle.Bosch
  */
 
 import org.apache.spark.sql.{SparkSession,Dataset,Row,DataFrame}
+
 import org.apache.log4j.PropertyConfigurator
 import org.apache.log4j.LogManager
 import org.apache.log4j.Level
@@ -22,7 +23,7 @@ object BoschDriver extends App {
 
   val spark_warehouse_dir= "file:///tmp/spark-warehouse"
 
-	println("Start!")
+	println("Start! Bosch Driver")
 
 	// get a spark session
 	val session= SparkDriver.config_session(hadoop_dir, spark_warehouse_dir)
@@ -45,22 +46,19 @@ object BoschDriver extends App {
 
 	println("Completed Reading")
 	
-	val (train,test)= SparkDriver.split_train_test_data(data,.2)
-
-	println("Split train test")
+	val (trainDataDF,validationDF)= SparkDriver.split_train_validation_data(data,.2, .1, true)
+	
+	// add persistance to trainDF
+	val trainDF= SparkDriver.reduce_train(trainDataDF,.1).persist()
+	
+	// debug
+	val train_count= trainDF.count()
+	val test_count= validationDF.count()
+	println("Split train test: train_count= "+trainDF.count+" test_count= "+validationDF.count)
 	
 	// start data exploration
+	BoschExploration.explore(trainDF)
 	
-	BoschExploration.explore(train)
-	
-	
-	
-	//data
-	
-	
-
 
 	println("Done!")
-
-
 }

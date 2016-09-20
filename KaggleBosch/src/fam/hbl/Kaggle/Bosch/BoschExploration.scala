@@ -1,17 +1,10 @@
 package fam.hbl.Kaggle.Bosch
 
 import org.apache.spark.sql.{Dataset,Row,DataFrame}
+import org.apache.spark.rdd.RDD
+import org.apache.spark.mllib.regression.LabeledPoint
 
 object BoschExploration {
-
-	def show (data:Dataset[Row]) {
-	  // sshow the data schema
-		data.printSchema()
-		// get a few random lines
-		val data_sample= data.sample(false, 0.01)
-		// print 5 of them
-		data_sample.show(5)
-	}
 	
 	/*
 	 * There is a discussion on the categorical features in 
@@ -36,24 +29,35 @@ object BoschExploration {
 	 *    T9  0  0  0  0  0  1  0  0  1
 	 *   T20  1  0  0  1  1  0  1  0  0
 	 */
-	
-	def explore (data:DataFrame) {
-	  // when showing data  it seems that most of the responses are 1
+  
+  def check_response_1_cases (dataDF:DataFrame) = {
+    
+	  // when showing data  it seems that most of the responses are 0
 	  // one first question is:  What is the percentage of responses that are 1?
 	 
 	  // select the response feature
-	  val response1= data.select("Id","Response").where("Response==1")
+	  val response1DF= dataDF.select("Id","Response").where("Response==1")
 	  
-	  response1.show(10)
-	  
-//	  val data_count:Double= data.count()
-//	  val response1_count:Double= response1.count()
-//	  val ratio:Double= (response1_count/data_count)*100
-//	  
-//	  println("data has "+data_count+" rows,"+
-//	      " response1 has "+response1_count+"rows"+
-//	      " The ratio is "+ratio+
-//	      " the ratio between them is ")
+	  response1DF.show(10)
+  }
+  
+//  def dataframe2labelledPoints (dataDF:DataFrame): RDD[LabeledPoint]{
+//    TBD
+//  }
+//  
+  
+  def score_features_relevance (dataDF:DataFrame,numTopFeatures:Int=100) :RDD[LabeledPoint] = {
+    // transform the data frame in an RDD[labeledPoints] to be able to use it for ML
+   val lab_pts= SparkDriver.df2LabeledPoints(dataDF, "Response")
+   // extract the mnost relevant features
+   return SparkDriver.feature_selection (lab_pts, numTopFeatures) 
+  }
+	
+	def explore (dataDF:DataFrame) {
+	  // check on the 1 cases
+	  check_response_1_cases (dataDF)
+	  //
+	  score_features_relevance (dataDF, 100)
 	}
-
+	
 }
