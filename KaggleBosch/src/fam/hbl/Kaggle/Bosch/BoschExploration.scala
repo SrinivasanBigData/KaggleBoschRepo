@@ -5,6 +5,8 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.regression.LabeledPoint
 
 object BoschExploration {
+  // logger setup
+  val be_logger=BoschDriver.bd_logger
 	
 	/*
 	 * There is a discussion on the categorical features in 
@@ -55,7 +57,7 @@ object BoschExploration {
 def score_features_relevance (dataDF:DataFrame,numTopFeatures:Int=100) :RDD[LabeledPoint] = {
     // transform the data frame in an RDD[labeledPoints] to be able to use it for ML
    val lab_pts= SparkDriver.df2LabeledPoints(dataDF, "Response")
-   // extract the mnost relevant features
+   // extract the most relevant features
    return SparkDriver.feature_selection (lab_pts, numTopFeatures) 
   }
 	
@@ -66,7 +68,7 @@ def score_features_relevance (dataDF:DataFrame,numTopFeatures:Int=100) :RDD[Labe
 	 */
 	def explore (dataDF:DataFrame) {
 	  // check on the 1 cases
-	  check_response_1_cases (dataDF)
+	  // check_response_1_cases (dataDF)
 	  //
 	  score_features_relevance (dataDF, 100)
 	}

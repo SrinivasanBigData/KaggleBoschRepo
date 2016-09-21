@@ -1,6 +1,6 @@
 package fam.hbl.Kaggle.Bosch
 
-import org.apache.spark.sql.{SparkSession,Dataset,Row,DataFrame}
+import org.apache.spark.sql.{SparkSession,Dataset,Row,DataFrame,DataFrameWriter}
 import org.apache.spark.rdd.RDD
 
 import org.apache.spark.mllib.feature.ChiSqSelector
@@ -33,7 +33,19 @@ object SparkDriver {
 			// return the session created
 			return session
 	}
+	
+	
+	/**
+	 *  Record a DataFrame to file to avoid to rebuild everything on startup
+	 */
+	def recordDF2File (dataDF:DataFrame, dataDF_path:String) = {
+	  // create a dataframe writer
+	  val writer= dataDF.write
+	  // store the file as parquet
+	  writer.option("header", true).csv(dataDF_path)
+	}
 
+	
 	/** 
 	 *  extracts validation and train data.
 	 *  Split train data in train and rest in case only part of train data to be used.  
@@ -49,6 +61,7 @@ object SparkDriver {
 					return (trainDF, validationDF)
 	}
 
+	
 	/**
 	 *  This function splits the data set in validation and train data
 	 *  
