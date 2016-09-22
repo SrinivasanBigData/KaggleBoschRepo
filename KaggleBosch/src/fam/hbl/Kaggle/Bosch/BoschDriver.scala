@@ -19,23 +19,24 @@ object BoschDriver extends App {
 	/* 
 	 * ------ Logging  --------------------------------------------
 	 */
-  val bd_logger = Logger.getLogger("BoschApp");
-  //
-  bd_logger.setLevel(DEBUG)
+	val bd_logger = Logger.getLogger("BoschApp");
+	//
+	bd_logger.setLevel(DEBUG)
 
 	/* 
 	 * ------ SETTINGS --------------------------------------------
 	 */
 
 	// required to create a session
-	val hadoop_dir= "C:\\Users\\Massimo\\Code\\hadoop-common-2.2.0-bin-master";
-
-	val spark_warehouse_dir= "file:///tmp/spark-warehouse";
+//	val hadoop_dir= "C:\\Users\\Massimo\\Code\\hadoop-common-2.2.0-bin-master";
+//
+//	val spark_warehouse_dir= "file:///tmp/spark-warehouse";
 
 	bd_logger.info("Start! Bosch Driver");
 
 	// get a spark session
-	val session= SparkDriver.config_session(hadoop_dir, spark_warehouse_dir);
+	// val session= SparkDriver.config_session(hadoop_dir, spark_warehouse_dir);
+	val session= SparkDriver.config_session();
 
 	bd_logger.info("Done Spark Session");
 
@@ -110,19 +111,19 @@ object BoschDriver extends App {
 			// return the data read
 			return (trainDF, validationDF)
 	}
-	
+
 	val (trainDF,validationDF)= getData (session:SparkSession)
 
-	bd_logger.info("Completed Reading")
+			bd_logger.info("Completed Reading")
 
-	// debug
-	val train_count= trainDF.count()
-	val validation_count= validationDF.count()
-	bd_logger.info("Split train test: train_count= "+train_count+" validation_count= "+validation_count)
+			// debug
+			val train_count= trainDF.count()
+			val validation_count= validationDF.count()
+			bd_logger.info("Split train test: train_count= "+train_count+" validation_count= "+validation_count)
 
-	// start data exploration
-	BoschExploration.explore(trainDF)
+			// start data exploration
+			BoschExploration.explore(trainDF)
 
 
-	bd_logger.info("Done!")
+			bd_logger.info("Done!")
 }

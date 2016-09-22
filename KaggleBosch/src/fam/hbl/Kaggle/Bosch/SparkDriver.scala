@@ -8,44 +8,64 @@ import org.apache.spark.mllib.feature.ChiSqSelectorModel
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.linalg.{Vector,Vectors,DenseVector}
 
+import org.apache.log4j.Logger
+import org.apache.log4j.Level.DEBUG
+
 class SparkDriver  {}
 
 object SparkDriver {
 
-	def config_session (hadoop_dir:String, spark_warehouse_dir:String):SparkSession = {
+	/* 
+	 * ------ Logging  --------------------------------------------
+	 */
+	val sparkDriver_logger = Logger.getLogger("BoschApp");
+	//
+	sparkDriver_logger.setLevel(DEBUG)
 
-			// set Hadoop reader to read files and configure dataframes
-			System.setProperty("hadoop.home.dir", "C:\\Users\\Massimo\\Code\\hadoop-common-2.2.0-bin-master")
-			println("Done Set Property!")
+	/* 
+	 * ------ Logics --------------------------------------------
+	 */
 
-			// define the spark session
-			val session = SparkSession  
-			.builder()
-			.appName("Spark SQL Example")
-			//  .config("spark.some.config.option", "some-value")
-			.master("local")
-			.config("spark.sql.warehouse.dir", "file:///tmp/spark-warehouse")
-			.getOrCreate()
+	// standard Hadoop dir
+	val std_hadoop_dir= "C:\\Users\\Massimo\\Code\\hadoop-common-2.2.0-bin-master";
+	// standard spark warehouse
+	val std_spark_warehouse_dir= "file:///tmp/spark-warehouse";
 
-			// For implicit conversions like converting RDDs to DataFrames
-			import session.implicits._
+	def config_session (hadoop_dir:String=std_hadoop_dir, 
+			spark_warehouse_dir:String=std_spark_warehouse_dir):SparkSession = {
 
-			// return the session created
-			return session
+					// set Hadoop reader to read files and configure dataframes
+					System.setProperty("hadoop.home.dir", "C:\\Users\\Massimo\\Code\\hadoop-common-2.2.0-bin-master")
+					sparkDriver_logger.info("Done Set Property!")
+
+					// define the spark session
+					val session = SparkSession  
+					.builder()
+					.appName("Spark SQL Example")
+					//  .config("spark.some.config.option", "some-value")
+					.master("local")
+					.config("spark.sql.warehouse.dir", "file:///tmp/spark-warehouse")
+					.getOrCreate()
+
+					// For implicit conversions like converting RDDs to DataFrames
+					import session.implicits._
+
+					// return the session created
+					return session
 	}
-	
-	
+
+
 	/**
 	 *  Record a DataFrame to file to avoid to rebuild everything on startup
 	 */
 	def recordDF2File (dataDF:DataFrame, dataDF_path:String) = {
-	  // create a dataframe writer
-	  val writer= dataDF.write
-	  // store the file as parquet
-	  writer.option("header", true).csv(dataDF_path)
+			// create a dataframe writer
+			val writer= dataDF.write
+					// store the file as parquet
+					writer.option("header", true).csv(dataDF_path)
 	}
 
-	
+
 	/** 
 	 *  extracts validation and train data.
 	 *  Split train data in train and rest in case only part of train data to be used.  
@@ -61,7 +81,7 @@ object SparkDriver {
 					return (trainDF, validationDF)
 	}
 
-	
+
 	/**
 	 *  This function splits the data set in validation and train data
 	 *  
@@ -103,14 +123,39 @@ object SparkDriver {
 
 	// -------------------------------------------
 
+	/**
+	 * This function is defined exclusively to debug a problem with the map 
+	 * in the function row2labeledPoint --- No other scope.
+	 */
+	def debug_row2LabeledPoint(row:Row, index:Int):Double = {
+			// get row value at index
+			val value:AnyRef= row.getAs(index)
+					// check whether the value is a string
+					value match {
+					case _: String => 
+					  sparkDriver_logger.debug("debug_row2LabeledPoint: found string ...>"+value+"<...")
+					case _: Any => 
+					  sparkDriver_logger.trace("debug_row2LabeledPoint: found Any ...>"+value+"<...")
+			}
+			return row.getDouble(index)
+	}
+
+	/** Transform one row in a DataFrame into LabeledPoints to be used by machine learning algorithms
+	 *  @author Massimo
+	 *  @param row the row to transform
+	 *  @param target_ind the index of the target column
+	 *  @param feature_indexes The indexes of the features in the row
+	 *  @return a labeled point for the row
+	 */
 	def row2LabeledPoint (row:Row, target_ind:Int,features_indexes:Array[Int]) : LabeledPoint= {
 			// extract the label from the row
-			val label:Double= row.getDouble(target_ind)
-					// extract the features
-					val features_vals:Array[Double]= features_indexes.map(row.getDouble(_))
-					val features:Vector = Vectors.dense(features_vals).toSparse
-					// build the labeledPoint and return it
-					return(LabeledPoint(label,features))
+			val label:Double= row.getDouble(target_ind);
+	sparkDriver_logger.debug("row2LabeldPoint: label== "+label);
+	// extract the features
+	val features_vals:Array[Double]= features_indexes.map(debug_row2LabeledPoint(row, _));
+	val features:Vector = Vectors.dense(features_vals).toSparse;
+	// build the labeledPoint and return it
+	return(LabeledPoint(label,features))
 	}
 
 	def df2LabeledPoints (df:DataFrame, target:String) : RDD[LabeledPoint] = {
@@ -133,12 +178,12 @@ object SparkDriver {
 	 * code from: https://spark.apache.org/docs/latest/mllib-feature-extraction.html#standardscaler
 	 */
 	def feature_selection (dataRDD:RDD[LabeledPoint], numTopFeatures:Int):RDD[LabeledPoint] = {
-		// Create ChiSqSelector that will select top 50 of 692 features
-		val selector:ChiSqSelector = new ChiSqSelector(50)
-				// Create ChiSqSelector model (selecting features)
-				val transformer:ChiSqSelectorModel = selector.fit(dataRDD)
-				// Filter the top 50 features from each feature vector
-				val filteredData:RDD[LabeledPoint] = dataRDD.map { lp => LabeledPoint(lp.label, transformer.transform(lp.features)) }
-		  return(filteredData)
+			// Create ChiSqSelector that will select top 50 of 692 features
+			val selector:ChiSqSelector = new ChiSqSelector(50)
+					// Create ChiSqSelector model (selecting features)
+					val transformer:ChiSqSelectorModel = selector.fit(dataRDD)
+					// Filter the top 50 features from each feature vector
+					val filteredData:RDD[LabeledPoint] = dataRDD.map { lp => LabeledPoint(lp.label, transformer.transform(lp.features)) }
+					return(filteredData)
 	}
 }
