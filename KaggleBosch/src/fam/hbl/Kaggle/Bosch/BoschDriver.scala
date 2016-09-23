@@ -28,9 +28,9 @@ object BoschDriver extends App {
 	 */
 
 	// required to create a session
-//	val hadoop_dir= "C:\\Users\\Massimo\\Code\\hadoop-common-2.2.0-bin-master";
-//
-//	val spark_warehouse_dir= "file:///tmp/spark-warehouse";
+	//	val hadoop_dir= "C:\\Users\\Massimo\\Code\\hadoop-common-2.2.0-bin-master";
+	//
+	//	val spark_warehouse_dir= "file:///tmp/spark-warehouse";
 
 	bd_logger.info("Start! Bosch Driver");
 
@@ -51,12 +51,8 @@ object BoschDriver extends App {
 			val fileName= "train_numeric.csv";
 			// form the path
 			val path= directoryName+fileName;
-			// create the reader
-			val reader= session.read;
-			// read using csv format
-			val dataDF= reader.option("header", "true") .csv(path);
-			// return the data frame 
-			return(dataDF) 
+			// load data and return
+			return (SparkDriver.load_data(session,path))
 	} 
 
 	/** 

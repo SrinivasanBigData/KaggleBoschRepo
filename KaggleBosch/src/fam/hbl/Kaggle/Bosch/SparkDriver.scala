@@ -54,9 +54,29 @@ object SparkDriver {
 					return session
 	}
 
+	// ----------- Reading - Writing data ------------------------------
+
+	/** read data in spark
+	 *  @param session:  the spark session to use for loading
+	 *  @paran path  the whole file path name including file name
+	 *  @param header whether the file has an header or not
+	 *  @return a data frame with the data in the file
+	 */
+	def load_data (session:SparkSession, path:String, sep:String=",", header:Boolean=true):DataFrame = {
+			// establish whether to use a header
+			val header_label= if (header) {"true"} else {"false"};
+			// create the reader
+			val reader= session.read;
+			// read using csv format
+			val dataDF= reader.option("header",header_label).option("sep", sep).csv(path);
+			// return the data frame 
+			return(dataDF) 
+	}
+
 
 	/**
 	 *  Record a DataFrame to file to avoid to rebuild everything on startup
+	 *  
 	 */
 	def recordDF2File (dataDF:DataFrame, dataDF_path:String) = {
 			// create a dataframe writer
@@ -133,11 +153,11 @@ object SparkDriver {
 					// check whether the value is a string
 					value match {
 					case _: String => 
-					  sparkDriver_logger.debug("debug_row2LabeledPoint: found string ...>"+value+"<...")
+					sparkDriver_logger.debug("debug_row2LabeledPoint: found string ...>"+value+"<...")
 					case _: Any => 
-					  sparkDriver_logger.trace("debug_row2LabeledPoint: found Any ...>"+value+"<...")
-			}
-			return row.getDouble(index)
+					sparkDriver_logger.trace("debug_row2LabeledPoint: found Any ...>"+value+"<...")
+	}
+	return row.getDouble(index)
 	}
 
 	/** Transform one row in a DataFrame into LabeledPoints to be used by machine learning algorithms
