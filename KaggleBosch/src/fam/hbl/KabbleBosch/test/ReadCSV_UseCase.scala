@@ -22,10 +22,19 @@ object ReadCSV_UseCase extends App {
 	data.show()
 	// test first row
 	val data_1= data.take(1)(0).toSeq
-	val expect_data= Row(23,234,2,"a").toSeq
+	val expect_data= Row("23","234","2","a").toSeq
 	println("data_1: "+data_1+" data_1.getClass: "+data_1.getClass)
 	println("e_data: "+expect_data+" e_data.getClass: "+expect_data.getClass)
 	println( "result: "+data_1.toString()+" "+
 	    expect_data.toString()+" "+
-	    (data_1 == expect_data).toString() )
+	    (data_1 == expect_data).toString() );
+	println("data_1(0)==expect_data(0): "+data_1(0)==expect_data(0))
+	println("data_1(1)==expect_data(1): "+data_1(1)==expect_data(1))
+	println("data_1(2)==expect_data(2): "+data_1(2)==expect_data(2))
+	println("data_1(3)==expect_data(3): "+data_1(3)==expect_data(3))
+	//
+	println("data_1(0).getClass: "+data_1(0).getClass+" expect_data(0): "+expect_data(0).getClass)
+	println("data_1(1).getClass: "+data_1(1).getClass+" expect_data(1): "+expect_data(1).getClass)
+	println("data_1(2).getClass: "+data_1(2).getClass+" expect_data(2): "+expect_data(2).getClass)
+	println("data_1(3).getClass: "+data_1(3).getClass+" expect_data(3): "+expect_data(3).getClass)
 }
