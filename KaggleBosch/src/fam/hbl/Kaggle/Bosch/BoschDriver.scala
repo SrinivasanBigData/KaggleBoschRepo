@@ -14,7 +14,7 @@ import org.apache.log4j.Level.DEBUG
 
 import java.nio.file.{Paths, Files}
 
-object BoschDriver extends App {
+object BoschDriver extends App with SparkDriver{
 
 	/* 
 	 * ------ Logging  --------------------------------------------
@@ -36,7 +36,7 @@ object BoschDriver extends App {
 
 	// get a spark session
 	// val session= SparkDriver.config_session(hadoop_dir, spark_warehouse_dir);
-	val session= SparkDriver.config_session();
+	val session= config_session();
 
 	bd_logger.info("Done Spark Session");
 
@@ -52,7 +52,7 @@ object BoschDriver extends App {
 			// form the path
 			val path= directoryName+fileName;
 			// load data and return
-			return (SparkDriver.load_data(session,path))
+			return (load_data(session,path))
 	} 
 
 	/** 
@@ -96,11 +96,11 @@ object BoschDriver extends App {
 				// read the row data
 				val dataDF= load_data(session);
 				// split train and validation data
-				val (trainDF,validationDF)= SparkDriver.split_train_validation_data(dataDF,.2, .1, true);
+				val (trainDF,validationDF)= split_train_validation_data(dataDF,.2, .1, true);
 				// store train and validation data
 				bd_logger.debug("BoschDriver.getData: ready to store");
-				SparkDriver.recordDF2File(trainDF, trainPath);
-				SparkDriver.recordDF2File(validationDF, validationPath);
+				recordDF2File(trainDF, trainPath);
+				recordDF2File(validationDF, validationPath);
 				// return valude
 				( trainDF.persist(), validationDF.persist() );
 			}

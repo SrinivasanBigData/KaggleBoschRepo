@@ -4,7 +4,7 @@ import org.apache.spark.sql.{Dataset,Row,DataFrame}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.regression.LabeledPoint
 
-object BoschExploration {
+object BoschExploration extends SparkDriver {
   // logger setup
   val be_logger=BoschDriver.bd_logger
 	
@@ -56,9 +56,9 @@ object BoschExploration {
  */
 def score_features_relevance (dataDF:DataFrame,numTopFeatures:Int=100) :RDD[LabeledPoint] = {
     // transform the data frame in an RDD[labeledPoints] to be able to use it for ML
-   val lab_pts= SparkDriver.df2LabeledPoints(dataDF, "Response")
+   val lab_pts= df2LabeledPoints(dataDF, "Response")
    // extract the most relevant features
-   return SparkDriver.feature_selection (lab_pts, numTopFeatures) 
+   return feature_selection (lab_pts, numTopFeatures) 
   }
 	
   
