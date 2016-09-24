@@ -11,9 +11,12 @@ import org.apache.spark.mllib.linalg.{Vector,Vectors,DenseVector}
 import org.apache.log4j.Logger
 import org.apache.log4j.Level.DEBUG
 
-class SparkDriver  {}
+import java.io.{IOException,File}
+import java.nio.file.{NoSuchFileException,DirectoryNotEmptyException}
 
-object SparkDriver {
+//class SparkDriver  {}
+
+trait SparkDriver {
 
 	/* 
 	 * ------ Logging  --------------------------------------------
@@ -74,15 +77,80 @@ object SparkDriver {
 	}
 
 
+	/** spark saves DataFrames in directories,  
+	 *  these directories need to be cleaned before they are removed
+	 *  @param file: the file to delete
+	 *  @return true if the file has been deleted
+	 *  @throw SecurityException when the delete function fails
+	 */
+	def delete_recordDF (file:File):Boolean = {
+			sparkDriver_logger.debug("SparkDriver.recordDF2File: deleting file: "+file.getName);
+			// check whether the file to delete is a directory
+			val deleted= if (file.isDirectory()) {
+				// get list of files in directory
+				val files = file.listFiles();
+				// recursively delete all files
+				files.foreach { file => delete_recordDF(file) }
+				// delete the (hopefully) empty directory
+				file.delete()
+			} else {
+				// it is just a file,  not a directors, delete!
+				file.delete()
+			}
+			// if nothing bombed return true
+			return deleted
+	}
+
+
 	/**
 	 *  Record a DataFrame to file to avoid to rebuild everything on startup
 	 *  
 	 */
-	def recordDF2File (dataDF:DataFrame, dataDF_path:String) = {
-			// create a dataframe writer
-			val writer= dataDF.write
+	def recordDF2File (dataDF:DataFrame, dataDF_path:String, overwrite:Boolean=true) = {
+			// ideally we could simply save the file but  Spark gives an exception if the file exists already, 
+			// so the saving function is abstracted, and a protection is added to avoid the exception
+			//
+			// the core work of this function ----------
+			def saveDF(dataDF:DataFrame, dataDF_path:String) = {
+					sparkDriver_logger.debug("SparkDriver.recordDF2File.save: entering")
+					// create a dataframe writer
+					val writer= dataDF.write
 					// store the file as parquet
 					writer.option("header", true).csv(dataDF_path)
+					sparkDriver_logger.debug("SparkDriver.recordDF2File.save: exiting")
+			}
+			//
+			// The protection ---------------------------
+			// check whether the file exists
+			val file = new File(dataDF_path);
+			// Spark gives an exception if the file exists already,  so we need to address the issue
+			// if the file does not exist simply save
+			// if the file exists and it can be overwritten: remove the file and then save
+			// if the file exists and it cannot be overwritten,  let it be and simply exit
+			if (file.exists()) {
+				sparkDriver_logger.debug("SparkDriver.recordDF2File: File exists")
+				// the file exist, check whether it can be overwritten
+				if (overwrite) {
+					sparkDriver_logger.debug("SparkDriver.recordDF2File: File overwrite")
+					// the file exists,  and it can be overwritten
+					// remove the old file
+					val deleted= delete_recordDF(file)
+					sparkDriver_logger.debug("SparkDriver.recordDF2File: File deleted: "+deleted)
+					// save it again
+					saveDF(dataDF, dataDF_path)
+					sparkDriver_logger.debug("SparkDriver.recordDF2File: new file saved: ")
+				} 
+				else {
+					sparkDriver_logger.debug("SparkDriver.recordDF2File: File exists and it is not overwritten")
+					// the file exists and it cannot overwritten
+					// --- do nothing
+				}
+			} 
+			else {
+				sparkDriver_logger.debug("SparkDriver.recordDF2File: File does not exist save it")
+				// the file does not exist,  it can be safely saved
+				saveDF(dataDF, dataDF_path)
+			}	
 	}
 
 
@@ -180,16 +248,16 @@ object SparkDriver {
 
 	def df2LabeledPoints (df:DataFrame, target:String) : RDD[LabeledPoint] = {
 			// Step 1: get the index of the independent variable
-			val target_ind= df.columns.indexOf(target)
-					// Step 2: get indexes of the independent variables
-					// - get all columns, and remove the target column
-					val features:Array[String]= df.columns.diff(target)
-					// - extract indexes
-					val features_indexes:Array[Int]= features.map(df.columns.indexOf(_))
-					// Step 3. map the rows of the DF to labeled points
-					val rdd_labeledPoint= df.rdd.map( row => row2LabeledPoint(row,target_ind,features_indexes) )
-					// return the rdd of labeled points
-					return(rdd_labeledPoint)
+			val target_ind= df.columns.indexOf(target);
+			// Step 2: get indexes of the independent variables
+			// - get all columns, and remove the target column
+			val features:Array[String]= df.columns.diff(target);
+			// - extract indexes
+			val features_indexes:Array[Int]= features.map(df.columns.indexOf(_));
+			// Step 3. map the rows of the DF to labeled points
+			val rdd_labeledPoint= df.rdd.map( row => row2LabeledPoint(row,target_ind,features_indexes) );
+			// return the rdd of labeled points
+			return(rdd_labeledPoint)
 	}
 
 	// run feature selection
@@ -199,11 +267,11 @@ object SparkDriver {
 	 */
 	def feature_selection (dataRDD:RDD[LabeledPoint], numTopFeatures:Int):RDD[LabeledPoint] = {
 			// Create ChiSqSelector that will select top 50 of 692 features
-			val selector:ChiSqSelector = new ChiSqSelector(50)
-					// Create ChiSqSelector model (selecting features)
-					val transformer:ChiSqSelectorModel = selector.fit(dataRDD)
-					// Filter the top 50 features from each feature vector
-					val filteredData:RDD[LabeledPoint] = dataRDD.map { lp => LabeledPoint(lp.label, transformer.transform(lp.features)) }
-					return(filteredData)
+			val selector:ChiSqSelector = new ChiSqSelector(50);
+	// Create ChiSqSelector model (selecting features)
+	val transformer:ChiSqSelectorModel = selector.fit(dataRDD);
+	// Filter the top 50 features from each feature vector
+	val filteredData:RDD[LabeledPoint] = dataRDD.map { lp => LabeledPoint(lp.label, transformer.transform(lp.features)) };
+	return(filteredData)
 	}
 }
