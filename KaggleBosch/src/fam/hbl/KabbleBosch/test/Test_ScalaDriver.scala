@@ -6,23 +6,72 @@ import org.scalatest._
 
 import fam.hbl.Kaggle.Bosch.SparkDriver
 
+import java.io.File
 
-class Test_ScalaDriver extends FlatSpec with Matchers {
+
+class Test_ScalaDriver extends FlatSpec with Matchers with SparkDriver{
   
   /** --- Setting the context ------------------------------------
    *  To run the test it is required that there is a spark DataFrame that contains 
    *  some data.  
    */
 	// create a spark session
-	val test_session= SparkDriver.config_session();
+	val test_session= config_session();
+	// path of the test data frame
+	val testDataFrame= "C:\\Users\\Massimo\\Code\\GitRepoS\\SparkBoschRepo\\KaggleBosch\\TestData\\labelled_data1.csv"
 
-  "Reading a file" should "return the correct values in the file" in {
-    val data= SparkDriver.load_data(test_session, 
-			"C:\\Users\\Massimo\\Code\\GitRepoS\\SparkBoschRepo\\KaggleBosch\\TestData\\labelled_data1.csv",
-			sep=";");
-    // get first row of 
-    val row= data.take(1)
+  "SparkDriver" should "read a file correctly" in {
+    // read the data
+    val dataDF= load_data(test_session, testDataFrame, sep=";");
+    // get first row of as a sequence
+    val row1= dataDF.take(1)(0).toSeq
+    // expected value of the first row
+    val expect_data= Row("23","234","2","a").toSeq
+    //check whether they are the same
+    row1 should be (expect_data)
+    dataDF.count() should be (9)
   }
+  
+  // test the saving function 
+  def test_data_path= "C:\\Users\\Massimo\\Code\\GitRepoS\\SparkBoschRepo\\KaggleBosch\\TestData\\"
+  def recordDF_path= test_data_path+"RecordData.csv"
+  // read data frame that can be used for testing
+  val dataDF= load_data(test_session, testDataFrame, sep=";").persist();
+  // three cases to test
+  // 1. the file did not exist, and it is saved
+  // 2. the file exists,  replace with a new one
+  // 3. the file exists but it cannot be overwritten
+  
+  // test case 1.  ----
+  
+  "SparkDriver_recordDF2File" should "save a new file correctly" in {
+    // make sure that the file does not exist
+    delete_recordDF(new File(recordDF_path))
+    // record a data frame
+    recordDF2File (dataDF, recordDF_path) 
+    // re-load it
+    val recordedDataDF= load_data(test_session, recordDF_path);
+    // test whether the original DF and the recorded one are the same 
+    val dataDF_row1= dataDF.take(1)(0).toSeq
+    val recordedDF_row1= recordedDataDF.take(1)(0).toSeq
+    // perform the tests
+    recordedDF_row1 should be (dataDF_row1)
+    recordedDataDF.count() should be (dataDF.count())
+  }
+  
+  // not the file exists redo with overwrite
+  "SparkDriver_recordDF2File" should "save a new file correctly" in {
+    // record a data frame with overwrite
+    recordDF2File (dataDF, recordDF_path,true) 
+    // re-load it
+    val recordedDataDF= load_data(test_session, recordDF_path);
+    // test whether the original DF and the recorded one are the same 
+    val dataDF_row1= dataDF.take(1)(0).toSeq
+    val recordedDF_row1= recordedDataDF.take(1)(0).toSeq
+    // perform the tests
+    recordedDF_row1 should be (dataDF_row1)
+    recordedDataDF.count() should be (dataDF.count())
+  }  
 
   "A Stack" should "pop values in last-in-first-out order" in {
     val stack = new Stack[Int]
