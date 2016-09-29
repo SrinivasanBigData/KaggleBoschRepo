@@ -20,7 +20,7 @@ class Test_ScalaDriver extends FlatSpec with Matchers with SparkDriver{
 	// path of the test data frame
 	val testDataFrame= "C:\\Users\\Massimo\\Code\\GitRepoS\\SparkBoschRepo\\KaggleBosch\\TestData\\labelled_data1.csv"
 
-  "SparkDriver" should "read a file correctly" in {
+  "SparkDriver_load" should "read a file correctly" in {
     // read the data
     val dataDF= load_data(test_session, testDataFrame, sep=";");
     // get first row of as a sequence
@@ -44,6 +44,28 @@ class Test_ScalaDriver extends FlatSpec with Matchers with SparkDriver{
   
   // test case 1.  ----
   
+  
+  "SparkDriver_delete_recordDF" should "delete the record file when it exists" in {
+    // check whether the file exists
+    val recordFile:File = new File(recordDF_path)
+    // check whether the file exists
+    val fileExists:Boolean= recordFile.exists()
+    // decide what to do
+    val fileRemoved= if (fileExists) {
+      // delete the file
+       delete_recordDF(new File(recordDF_path))
+       // the file should have been removed 
+       assert( !recordFile.exists() )
+       !recordFile.exists()
+    } else {
+      // assume that everything is fine
+      succeed
+      true
+    }
+    fileRemoved should be (true)
+  }
+  
+  
   "SparkDriver_recordDF2File" should "save a new file correctly" in {
     // make sure that the file does not exist
     delete_recordDF(new File(recordDF_path))
@@ -60,7 +82,7 @@ class Test_ScalaDriver extends FlatSpec with Matchers with SparkDriver{
   }
   
   // not the file exists redo with overwrite
-  "SparkDriver_recordDF2File" should "save a new file correctly" in {
+  it should "overwrite the file when requested" in {
     // record a data frame with overwrite
     recordDF2File (dataDF, recordDF_path,true) 
     // re-load it
