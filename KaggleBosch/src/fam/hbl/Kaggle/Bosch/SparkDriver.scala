@@ -12,7 +12,7 @@ import org.apache.log4j.Logger
 import org.apache.log4j.Level.DEBUG
 
 import java.io.{IOException,File}
-import java.nio.file.{NoSuchFileException,DirectoryNotEmptyException}
+import java.nio.file.{Files, Paths, NoSuchFileException, DirectoryNotEmptyException}
 
 //class SparkDriver  {}
 
@@ -153,6 +153,7 @@ trait SparkDriver {
 			}	
 	}
 
+	// ---------- Separate Train and Validation Data -------------------
 
 	/** 
 	 *  extracts validation and train data.
@@ -206,6 +207,70 @@ trait SparkDriver {
 	 */
 	def reduce_train (trainDF:DataFrame, train_sample_ratio:Double=1): DataFrame= {
 			return trainDF.sample(false, train_sample_ratio)
+	}
+
+	/** load train and validation data
+	 *  @param trainPath: the path to the training data
+	 *  @param validationPath: the path to the validation data
+	 *  @param session: the current spark session
+	 *  @return a tuple (train,validation) where both values are dataframes
+	 */
+	def load_train_validation (trainPath:String, validationPath:String, session:SparkSession): (DataFrame,DataFrame) = {
+			sparkDriver_logger.debug("SparkDriver.load_train_validation: If chosen... files exist")
+			// read the stored data
+			val trainDF= load_data(session, trainPath);
+			val validationDF= load_data(session, validationPath);
+			// return a tuple with the train and validation data both as persistent to avoid reloading
+			sparkDriver_logger.debug("SparkDriver.load_train_validatin: done")
+			return( trainDF.persist(), validationDF.persist() );
+	}
+
+	/** load data and split test and validation data
+	 *  @param dataPath: the path from where to load the data
+	 *  @param trainPath: the path to the training data
+	 *  @param validationPath: the path to the validation data
+	 *  @param session: the current spark session
+	 *  @return a tuple (train,validation) where both values are dataframes
+	 */
+	def split_and_store_data (dataPath:String, trainPath:String, validationPath:String, session:SparkSession): (DataFrame,DataFrame) = {
+			// read the row data
+			val dataDF= load_data(session,dataPath);
+			// split train and validation data
+			val (trainDF,validationDF)= split_train_validation_data(dataDF,.2, .1, true);
+			// store train and validation data
+			sparkDriver_logger.debug("SparkDriver.getData: ready to store");
+			recordDF2File(trainDF, trainPath);
+			recordDF2File(validationDF, validationPath);
+			// return values
+			return( trainDF.persist(), validationDF.persist() );
+	}
+
+	/** Get the data for the session
+	 *  If the data is 
+	 *  
+	 */
+	def getData_split (dataPath:String, trainPath:String, validationPath:String, session:SparkSession): (DataFrame,DataFrame) = {
+			// check whether the train and validation fines already exist.
+			val stored_data_exists= 
+					Files.exists(Paths.get(trainPath)) && Files.exists(Paths.get(validationPath));
+			sparkDriver_logger.debug("SparkDriver.getData: ready to choose ")
+			//
+			// extract train and validation data
+			//
+			// make the choice between reading the data and build the validation and train data
+			// or loading the data.  
+			// the criteria is:  if the stored data exists,  then load it.
+			//
+			val (trainDF:DataFrame, validationDF:DataFrame) = 
+			if (stored_data_exists) {
+				// train and validation data have already been split
+				load_train_validation(trainPath, validationPath, session)
+			} else {
+			  // train and validation do not exist,  load the data and make the split
+			  split_and_store_data (dataPath, trainPath, validationPath, session)
+			}
+			// return the data read
+			return (trainDF, validationDF)
 	}
 
 
