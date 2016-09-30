@@ -18,8 +18,10 @@ class Test_ScalaDriver extends FlatSpec with Matchers with SparkDriver{
 	// create a spark session
 	val test_session= config_session();
 	// path of the test data frame
-	val testDataFrame= "C:\\Users\\Massimo\\Code\\GitRepoS\\SparkBoschRepo\\KaggleBosch\\TestData\\labelled_data1.csv"
-
+	val testDataDir= "C:\\Users\\Massimo\\Code\\GitRepoS\\SparkBoschRepo\\KaggleBosch\\TestData\\"
+	val testDataName= "labelled_data1.csv"
+	val testDataFrame= testDataDir+testDataName
+	
   "SparkDriver_load" should "read a file correctly" in {
     // read the data
     val dataDF= load_data(test_session, testDataFrame, sep=";");
@@ -94,6 +96,8 @@ class Test_ScalaDriver extends FlatSpec with Matchers with SparkDriver{
     recordedDF_row1 should be (dataDF_row1)
     recordedDataDF.count() should be (dataDF.count())
   }  
+  
+  // ---------------------------------------------------------------------
 
   "A Stack" should "pop values in last-in-first-out order" in {
     val stack = new Stack[Int]
