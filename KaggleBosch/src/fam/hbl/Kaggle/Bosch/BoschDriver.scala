@@ -72,54 +72,33 @@ object BoschDriver extends App with SparkDriver{
 	 *  If the data is 
 	 *  
 	 */
-	def getData (session:SparkSession): (DataFrame,DataFrame) = {
+	def getData (dataDir:String, dataFile:String, session:SparkSession): (DataFrame,DataFrame) = {
 			// check whether the train and validation fines already exist.
 			val trainPath= DefaultFileStore + DefaultTrainFile;
 			val validationPath= DefaultFileStore + DefaultValidationFile;
-			val stored_data_exists= Files.exists(Paths.get(trainPath)) && Files.exists(Paths.get(validationPath));
-			bd_logger.debug("BoschDriver.getData: ready to choose ")
-			// make the choice between reading the data and build the validation and train data
-			// or loading the data.  
-			// the criteria is:  if the stored data exists,  then load it.
-			//
-			// create two empty variables for the data
-			val (trainDF:DataFrame, validationDF:DataFrame) = 
-			if (stored_data_exists) {
-				bd_logger.debug("BoschDriver.getData: If chosen... files exist")
-				// read the stored data
-				val trainDF= session.read.option("header", "true").csv(trainPath); //...was... parquet(trainPath);
-				val validationDF= session.read.option("header", "true").csv(validationPath); //...was... .parquet(validationPath);
-				bd_logger.debug("BoschDriver.getData: done")
-				( trainDF.persist(), validationDF.persist() );
-			} else {
-				bd_logger.debug("BoschDriver.getData: else chosen... files do not exist")
-				// read the row data
-				val dataDF= load_data(session);
-				// split train and validation data
-				val (trainDF,validationDF)= split_train_validation_data(dataDF,.2, .1, true);
-				// store train and validation data
-				bd_logger.debug("BoschDriver.getData: ready to store");
-				recordDF2File(trainDF, trainPath);
-				recordDF2File(validationDF, validationPath);
-				// return valude
-				( trainDF.persist(), validationDF.persist() );
-			}
-			// return the data read
-			return (trainDF, validationDF)
+			val dataPath= dataDir+dataFile
+					// return the result of loading and splitting the data
+					return(
+							getData_split (dataPath, trainPath, validationPath, session)
+							)
 	}
 
-	val (trainDF,validationDF)= getData (session:SparkSession)
+	val (trainDF,validationDF)= 
+			getData (
+					"\\Users\\Massimo\\Code\\Data\\Kaggle\\Bosch\\",
+					"train_numeric.csv",
+					session:SparkSession);
 
-			bd_logger.info("Completed Reading")
+	bd_logger.info("Completed Reading")
 
-			// debug
-			val train_count= trainDF.count()
-			val validation_count= validationDF.count()
-			bd_logger.info("Split train test: train_count= "+train_count+" validation_count= "+validation_count)
+	// debug
+	val train_count= trainDF.count()
+	val validation_count= validationDF.count()
+	bd_logger.info("Split train test: train_count= "+train_count+" validation_count= "+validation_count)
 
-			// start data exploration
-			BoschExploration.explore(trainDF)
+	// start data exploration
+	BoschExploration.explore(trainDF)
 
 
-			bd_logger.info("Done!")
+	bd_logger.info("Done!")
 }
