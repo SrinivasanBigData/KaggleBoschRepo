@@ -160,13 +160,13 @@ trait SparkDriver {
 	 */
 	def split_train_validation_data_fine (dataDF:DataFrame, validation_ratio:Double, ignore_ratio:Double=1):(DataFrame,DataFrame) = {
 			// compute the train ratio
-			val train_ratio= 1-(validation_ratio+ignore_ratio)
-					// split the data
-					val splits = dataDF.randomSplit(Array(train_ratio, validation_ratio, ignore_ratio))
-					// name the ratios
-					val (trainDF, validationDF) = ( splits(0), splits(1) )
-					// return statement
-					return (trainDF, validationDF)
+			val train_ratio= 1-(validation_ratio+ignore_ratio);
+			// split the data
+			val splits = dataDF.randomSplit(Array(train_ratio, validation_ratio, ignore_ratio));
+			// name the ratios
+			val (trainDF, validationDF) = ( splits(0), splits(1) );
+			// return statement
+			return (trainDF, validationDF)
 	}
 
 
