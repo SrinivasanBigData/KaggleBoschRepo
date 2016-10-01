@@ -209,6 +209,10 @@ trait SparkDriver {
 			return trainDF.sample(false, train_sample_ratio)
 	}
 
+	/*
+	 * Can't connect to any repository 401 Authorization Required
+	 */
+	
 	/** load train and validation data
 	 *  @param trainPath: the path to the training data
 	 *  @param validationPath: the path to the validation data
@@ -233,8 +237,11 @@ trait SparkDriver {
 	 *  @return a tuple (train,validation) where both values are dataframes
 	 */
 	def split_and_store_data (dataPath:String, trainPath:String, validationPath:String, session:SparkSession): (DataFrame,DataFrame) = {
+			sparkDriver_logger.debug("SparkDriver.split_and_store_data: entering ")
+			sparkDriver_logger.debug("SparkDriver.split_and_store_data: dataPath: "+dataPath)
 			// read the row data
 			val dataDF= load_data(session,dataPath);
+			sparkDriver_logger.debug("SparkDriver.split_and_store_data: got data ")
 			// split train and validation data
 			val (trainDF,validationDF)= split_train_validation_data(dataDF,.2, .1, true);
 			// store train and validation data
@@ -245,7 +252,8 @@ trait SparkDriver {
 			return( trainDF.persist(), validationDF.persist() );
 	}
 
-	/** Get the data for the session
+	/** Get the data for the session  
+	 *  Please Store m1 Code. leGru
 	 *  If the data is 
 	 *  
 	 */
@@ -319,8 +327,11 @@ trait SparkDriver {
 			val features:Array[String]= df.columns.diff(target);
 			// - extract indexes
 			val features_indexes:Array[Int]= features.map(df.columns.indexOf(_));
+			sparkDriver_logger.debug("row2LabeldPoints: Done with indexing features");
 			// Step 3. map the rows of the DF to labeled points
-			val rdd_labeledPoint= df.rdd.map( row => row2LabeledPoint(row,target_ind,features_indexes) );
+			val dfRDD= df.rdd
+			sparkDriver_logger.debug("row2LabeldPoints: Got dfRDD");
+			val rdd_labeledPoint= dfRDD.map( row => row2LabeledPoint(row,target_ind,features_indexes) );
 			// return the rdd of labeled points
 			return(rdd_labeledPoint)
 	}
