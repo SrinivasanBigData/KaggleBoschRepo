@@ -20,11 +20,15 @@ object SampleExploration extends App with SparkDriver {
 	// get a spark session
 	// val session= SparkDriver.config_session(hadoop_dir, spark_warehouse_dir);
 	val session= config_session();
+	
+	expl_logger.debug("SampleExploration: got session")
   
   // get the data 
   val dataDir= "C:\\Users\\Massimo\\Code\\GitRepoS\\SparkBoschRepo\\KaggleBosch\\TestData\\"
 	val dataFileName= "ColumnSelectionTestData.csv"
 	val dataPath= dataDir+dataFileName
+	
+	expl_logger.debug("SampleExploration: got directories")
 	
 	// load data
 	val (train,validation)= 
@@ -33,5 +37,11 @@ object SampleExploration extends App with SparkDriver {
 	      dataDir+"ColumnSelectionTestData_train", 
 	      dataDir+"ColumnSelectionTestData_validation", 
 	      session)
+	
+	expl_logger.debug("SampleExploration: got loaded data")
+	
+	val trainFD= df2LabeledPoints(train, "Response")
+	
+	expl_logger.debug("SampleExploration: got LabeledPoints")
 
 }
