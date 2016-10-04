@@ -1,4 +1,4 @@
-package fam.hbl.KabbleBosch.test
+package fam.hbl.KabbleBosch.stackOverflow_UseCase
 
 import collection.mutable.Stack  // Here only for example .... To Be Removed
 import org.apache.spark.sql.Row
@@ -95,7 +95,10 @@ class Test_ScalaDriver extends FlatSpec with Matchers with SparkDriver{
     // perform the tests
     recordedDF_row1 should be (dataDF_row1)
     recordedDataDF.count() should be (dataDF.count())
-  }  
+  } 
+  
+  // test the transformation to labeled points
+  
   
   // ---------------------------------------------------------------------
 

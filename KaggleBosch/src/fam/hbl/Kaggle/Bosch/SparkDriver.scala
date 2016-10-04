@@ -57,6 +57,9 @@ trait SparkDriver {
 					return session
 	}
 
+	val session= config_session();
+	import session.implicits._;
+
 	// ----------- Reading - Writing data ------------------------------
 
 	/** read data in spark
@@ -212,7 +215,7 @@ trait SparkDriver {
 	/*
 	 * Can't connect to any repository 401 Authorization Required
 	 */
-	
+
 	/** load train and validation data
 	 *  @param trainPath: the path to the training data
 	 *  @param validationPath: the path to the validation data
@@ -274,8 +277,8 @@ trait SparkDriver {
 				// train and validation data have already been split
 				load_train_validation(trainPath, validationPath, session)
 			} else {
-			  // train and validation do not exist,  load the data and make the split
-			  split_and_store_data (dataPath, trainPath, validationPath, session)
+				// train and validation do not exist,  load the data and make the split
+				split_and_store_data (dataPath, trainPath, validationPath, session)
 			}
 			// return the data read
 			return (trainDF, validationDF)
@@ -290,13 +293,13 @@ trait SparkDriver {
 	 */
 	def debug_row2LabeledPoint(row:Row, index:Int):Double = {
 			// get row value at index
-			val value:AnyRef= row.getAs(index)
-					// check whether the value is a string
-					value match {
-					case _: String => 
-					sparkDriver_logger.debug("debug_row2LabeledPoint: found string ...>"+value+"<...")
-					case _: Any => 
-					sparkDriver_logger.trace("debug_row2LabeledPoint: found Any ...>"+value+"<...")
+			val value:AnyRef= row.getAs(index);
+	// check whether the value is a string
+	value match {
+	case _: String => 
+	sparkDriver_logger.debug("debug_row2LabeledPoint: found string ...>"+value+"<...");
+	case _: Any => 
+	sparkDriver_logger.trace("debug_row2LabeledPoint: found Any ...>"+value+"<...");
 	}
 	return row.getDouble(index)
 	}
@@ -308,32 +311,68 @@ trait SparkDriver {
 	 *  @param feature_indexes The indexes of the features in the row
 	 *  @return a labeled point for the row
 	 */
-	def row2LabeledPoint (row:Row, target_ind:Int,features_indexes:Array[Int]) : LabeledPoint= {
+	def row2LabeledPoint (row:Row, target_ind:Int, features_indexes:Array[Int], dense:Boolean=true) : LabeledPoint= {
 			// extract the label from the row
-			val label:Double= row.getDouble(target_ind);
-	sparkDriver_logger.debug("row2LabeldPoint: label== "+label);
-	// extract the features
-	val features_vals:Array[Double]= features_indexes.map(debug_row2LabeledPoint(row, _));
-	val features:Vector = Vectors.dense(features_vals).toSparse;
-	// build the labeledPoint and return it
-	return(LabeledPoint(label,features))
+			sparkDriver_logger.debug("row2LabeldPoint: entering -- row: "+row.toString());
+			val labelStr= row.get(target_ind);
+			sparkDriver_logger.debug("row2LabeldPoint: label: "+labelStr);
+			val label:Double= row.getString(target_ind).toDouble;
+			sparkDriver_logger.debug("row2LabeldPoint: label== "+label);
+			// extract the features
+			// --> val features_vals:Array[Double]= features_indexes.map(debug_row2LabeledPoint(row, _));
+			val features_vals:Array[Double]= features_indexes.map(row.getString(_).toDouble);
+			val features:Vector = 
+					if (dense) {Vectors.dense(features_vals)} 
+					else {Vectors.dense(features_vals).toSparse};
+					// build the labeledPoint and return it
+					return(LabeledPoint(label,features))
+	}
+	
+	def closureFunction[E,D,R](enclosed: E)(gen: E => (D => R)) = gen(enclosed);
+
+	def df2LabeledPoints (df:DataFrame, response:String) : Dataset[LabeledPoint] = { 
+			// Separate response from features
+			val features:Array[String]= df.columns.diff(Array(response));
+	// get indexes
+	val response_index:Int= df.columns.indexOf(response);
+	val features_indexes:Array[Int]= features.map(df.columns.indexOf(_));
+	
+	def map2LabeledPoints() = closureFunction((response_index, features_indexes)) { 
+		enclosed => val (response_index, features_indexes) = enclosed;
+		(df:DataFrame) => df.map { row:Row => row2LabeledPoint(row, response_index,features_indexes) }
+	}
+	
+  val labPointDS= map2LabeledPoints()(df)
+	// val labPointDS= df.map { row => row2LabeledPoint(row, response_index,features_indexes) };
+	labPointDS.show()
+	return(labPointDS)
 	}
 
-	def df2LabeledPoints (df:DataFrame, target:String) : RDD[LabeledPoint] = {
+	def df2LabeledPoints2 (df:DataFrame, target:String, dense:Boolean=true) : Dataset[LabeledPoint] = {
+			import session.implicits._;
+
 			// Step 1: get the index of the independent variable
 			val target_ind= df.columns.indexOf(target);
+
 			// Step 2: get indexes of the independent variables
 			// - get all columns, and remove the target column
-			val features:Array[String]= df.columns.diff(target);
+			val features:Array[String]= df.columns.diff(Array(target));
 			// - extract indexes
 			val features_indexes:Array[Int]= features.map(df.columns.indexOf(_));
-			sparkDriver_logger.debug("row2LabeldPoints: Done with indexing features");
+			sparkDriver_logger.debug("row2LabeldPoints: features: "+features.mkString("<", ",", ">") );
+			sparkDriver_logger.debug("row2LabeldPoints: target_ind= "+target_ind);
+			sparkDriver_logger.debug("row2LabeldPoints: features_indexes= "+features_indexes.mkString("<", ",", ">") );
+
 			// Step 3. map the rows of the DF to labeled points
-			val dfRDD= df.rdd
-			sparkDriver_logger.debug("row2LabeldPoints: Got dfRDD");
-			val rdd_labeledPoint= dfRDD.map( row => row2LabeledPoint(row,target_ind,features_indexes) );
-			// return the rdd of labeled points
-			return(rdd_labeledPoint)
+			// protect target column to make sure that there are no empty values
+			val protectedDF= df.filter { row => row.getString(target_ind) != "" }
+			sparkDriver_logger.debug("row2LabeldPoints: Got protectedDF");
+			protectedDF.show()
+			val labeledPointsDS= protectedDF.map { row => row2LabeledPoint(row, target_ind, features_indexes, dense) }
+			labeledPointsDS.show()
+			//val labeledPointsDF= protectedDF.map( row => row2LabeledPoint(row,target_ind,features_indexes) );
+			// return the DataSet of labeled points
+			return(labeledPointsDS)
 	}
 
 	// run feature selection

@@ -54,23 +54,23 @@ object BoschExploration extends SparkDriver {
  * @param numTopFeatures
  * @return
  */
-def score_features_relevance (dataDF:DataFrame,numTopFeatures:Int=100) :RDD[LabeledPoint] = {
-    // transform the data frame in an RDD[labeledPoints] to be able to use it for ML
-   val lab_pts= df2LabeledPoints(dataDF, "Response")
-   // extract the most relevant features
-   return feature_selection (lab_pts, numTopFeatures) 
-  }
+//def score_features_relevance (dataDF:DataFrame,numTopFeatures:Int=100) :Datset[LabeledPoint] = {
+//    // transform the data frame in an RDD[labeledPoints] to be able to use it for ML
+//   val lab_pts= df2LabeledPoints(dataDF, "Response")
+//   // extract the most relevant features
+//   return feature_selection (lab_pts, numTopFeatures) 
+//  }
 	
   
 	/**  
 	 * Exploration driver
 	 * @param dataDF:  the data to explore
 	 */
-	def explore (dataDF:DataFrame) {
-	  // check on the 1 cases
-	  // check_response_1_cases (dataDF)
-	  //
-	  score_features_relevance (dataDF, 100)
-	}
+//	def explore (dataDF:DataFrame) {
+//	  // check on the 1 cases
+//	  // check_response_1_cases (dataDF)
+//	  //
+//	  score_features_relevance (dataDF, 100)
+//	}
 	
 }

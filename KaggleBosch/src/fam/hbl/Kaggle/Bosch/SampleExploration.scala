@@ -17,9 +17,7 @@ object SampleExploration extends App with SparkDriver {
 	 * ------ SETTINGS --------------------------------------------
 	 */
 
-	// get a spark session
-	// val session= SparkDriver.config_session(hadoop_dir, spark_warehouse_dir);
-	val session= config_session();
+	// got a spark session from SparkDriver
 	
 	expl_logger.debug("SampleExploration: got session")
   

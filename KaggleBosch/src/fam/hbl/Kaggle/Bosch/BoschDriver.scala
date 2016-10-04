@@ -34,9 +34,7 @@ object BoschDriver extends App with SparkDriver{
 
 	bd_logger.info("Start! Bosch Driver");
 
-	// get a spark session
-	// val session= SparkDriver.config_session(hadoop_dir, spark_warehouse_dir);
-	val session= config_session();
+	// get a spark session from SparkDriver
 
 	bd_logger.info("Done Spark Session");
 
@@ -97,7 +95,7 @@ object BoschDriver extends App with SparkDriver{
 	bd_logger.info("Split train test: train_count= "+train_count+" validation_count= "+validation_count)
 
 	// start data exploration
-	BoschExploration.explore(trainDF)
+//	BoschExploration.explore(trainDF)
 
 
 	bd_logger.info("Done!")
