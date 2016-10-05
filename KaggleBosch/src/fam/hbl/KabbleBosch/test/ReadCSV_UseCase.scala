@@ -77,7 +77,8 @@ object ReadCSV_UseCase extends App with SparkDriver {
 	val labPointDS= df2lp (numDF, response)
 			labPointDS.show()
 
-	val labPointDF2= df2LabeledPoints (protNumDF, "val1")
+	// CARE: This bombs
+	val labPointDF2= df2LabeledPoints_2 (protNumDF, "val1")
 	labPointDF2.show()
 
 
