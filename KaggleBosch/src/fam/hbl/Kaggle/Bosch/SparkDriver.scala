@@ -328,27 +328,35 @@ trait SparkDriver {
 					return(LabeledPoint(label,features))
 	}
 	
-	def closureFunction[E,D,R](enclosed: E)(gen: E => (D => R)) = gen(enclosed);
+//	def closureFunction[E,D,R](enclosed: E)(gen: E => (D => R)) = gen(enclosed);
+//	
+//	def map2LabeledPoints(response_index, features_indexes)) { 
+//		enclosed => val (response_index, features_indexes) = enclosed;
+//		(df:DataFrame) => df.map { row:Row => row2LabeledPoint(row, response_index,features_indexes) }
+//	}
+	
+// WRONG!!!
+	def map2LabeledPoints(df:DataFrame, response_index:Int, features_indexes:Array[Int]) : Dataset[LabeledPoint] = {
+		import session.implicits._
+		df.map({ row:Row => row2LabeledPoint(row,response_index,features_indexes) } )
+		val labeledPoints= df.map { row:Row => row2LabeledPoint(row,response_index,features_indexes) } 
+		return (labeledPoints)
+	}
 
-	def df2LabeledPoints (df:DataFrame, response:String) : Dataset[LabeledPoint] = { 
+	def df2LabeledPoints_2 (df:DataFrame, response:String) : Dataset[LabeledPoint] = { 
 			// Separate response from features
 			val features:Array[String]= df.columns.diff(Array(response));
 	// get indexes
 	val response_index:Int= df.columns.indexOf(response);
 	val features_indexes:Array[Int]= features.map(df.columns.indexOf(_));
-	
-	def map2LabeledPoints() = closureFunction((response_index, features_indexes)) { 
-		enclosed => val (response_index, features_indexes) = enclosed;
-		(df:DataFrame) => df.map { row:Row => row2LabeledPoint(row, response_index,features_indexes) }
-	}
-	
-  val labPointDS= map2LabeledPoints()(df)
+  // val labPointDS= map2LabeledPoints()(df)
+  val labeledPoints:Dataset[LabeledPoint]= map2LabeledPoints(df,response_index, features_indexes)
 	// val labPointDS= df.map { row => row2LabeledPoint(row, response_index,features_indexes) };
-	labPointDS.show()
-	return(labPointDS)
+	labeledPoints.show()
+	return(labeledPoints)
 	}
 
-	def df2LabeledPoints2 (df:DataFrame, target:String, dense:Boolean=true) : Dataset[LabeledPoint] = {
+	def df2LabeledPoints_1 (df:DataFrame, target:String, dense:Boolean=true) : Dataset[LabeledPoint] = {
 			import session.implicits._;
 
 			// Step 1: get the index of the independent variable
@@ -382,11 +390,11 @@ trait SparkDriver {
 	 */
 	def feature_selection (dataRDD:RDD[LabeledPoint], numTopFeatures:Int):RDD[LabeledPoint] = {
 			// Create ChiSqSelector that will select top 50 of 692 features
-			val selector:ChiSqSelector = new ChiSqSelector(50);
-	// Create ChiSqSelector model (selecting features)
-	val transformer:ChiSqSelectorModel = selector.fit(dataRDD);
-	// Filter the top 50 features from each feature vector
-	val filteredData:RDD[LabeledPoint] = dataRDD.map { lp => LabeledPoint(lp.label, transformer.transform(lp.features)) };
-	return(filteredData)
+			val selector:ChiSqSelector = new ChiSqSelector(50)
+					// Create ChiSqSelector model (selecting features)
+					val transformer:ChiSqSelectorModel = selector.fit(dataRDD);
+			// Filter the top 50 features from each feature vector
+			val filteredData:RDD[LabeledPoint] = dataRDD.map { lp => LabeledPoint(lp.label, transformer.transform(lp.features)) };
+			return(filteredData)
 	}
 }
